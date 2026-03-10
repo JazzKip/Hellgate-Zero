@@ -285,7 +285,7 @@ body{background:#000;overflow:hidden;font-family:'Courier New',monospace}
 
   <div class="ov-controls">
     <div class="ctrl-line"><span><b>WASD</b></span><span>Move</span></div>
-    <div class="ctrl-line"><span><b>SHIFT</b></span><span>Sprint (uses stamina)</span></div>
+    <div class="ctrl-line"><span><b>SHIFT</b></span><span>Sprint</span></div>
     <div class="ctrl-line"><span><b>LMB</b></span><span>Shoot</span></div>
     <div class="ctrl-line"><span><b>RMB</b></span><span>Aim (ADS)</span></div>
     <div class="ctrl-line"><span><b>B</b></span><span>Fire mode (semi/auto)</span></div>
@@ -1483,6 +1483,8 @@ function initGame(){
   wG.position.copy(WHIP);
 
   /* ── SPELER ── */
+  var STAMINA_DRAIN=40,STAMINA_REGEN=20,STAMINA_REGEN_LOW=8,STAMINA_REGEN_THRESH=20;
+  var MAX_SHELLS=15,SHELL_LIFETIME=0.8;
   var player={hp:100,maxHp:100,ammo:12,maxAmmo:12,score:0,coins:loadCoins(),coinsEarned:0,kills:0,reload:false,reloadTime:1.7,reloadT:0,dead:false,yaw:0,pitch:0,speed:6,sprintSpd:10,shootCd:0,baseShootCd:.1,explAmmo:0,dmg:22,weaponSpread:0,pellets:1,stamina:100,maxStamina:100};
   var baseSpeed=6,baseSprintSpd=10;
 
@@ -1638,7 +1640,7 @@ function initGame(){
   function spawnImp(pos,blood){var cnt=blood?4:3;for(var i=0;i<cnt;i++){var m=getImp();if(!m)return;m.material.color.set(blood?0xcc0011:0x888888);m.material.opacity=1;m.position.copy(pos);m.visible=true;var vel=new THREE.Vector3((Math.random()-.5)*6,Math.random()*5+1,(Math.random()-.5)*6);iActive.push({mesh:m,vel:vel,life:.28+Math.random()*.22});}}
   function updImpacts(dt){for(var i=iActive.length-1;i>=0;i--){var p=iActive[i];p.life-=dt;p.vel.y-=16*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.material.opacity=p.life*3.5;if(p.life<=0){relImp(p.mesh);iActive.splice(i,1);}}}
   var sGeo=new THREE.CylinderGeometry(.015,.015,.058,5),sMat=new THREE.MeshLambertMaterial({color:0xcc9900});
-  function spawnShell(){if(shells.length>=15)return;var m=new THREE.Mesh(sGeo,sMat);var wp=new THREE.Vector3();wG.getWorldPosition(wp);m.position.copy(wp).add(new THREE.Vector3(.12,.05,0));scene.add(m);var vel=new THREE.Vector3(Math.random()*2.6+1,Math.random()*2+.7,(Math.random()-.5)*.5);vel.applyQuaternion(camera.quaternion);shells.push({mesh:m,vel:vel,av:new THREE.Vector3(Math.random()*18,Math.random()*18,Math.random()*18),life:0.8});}
+  function spawnShell(){if(shells.length>=MAX_SHELLS)return;var m=new THREE.Mesh(sGeo,sMat);var wp=new THREE.Vector3();wG.getWorldPosition(wp);m.position.copy(wp).add(new THREE.Vector3(.12,.05,0));scene.add(m);var vel=new THREE.Vector3(Math.random()*2.6+1,Math.random()*2+.7,(Math.random()-.5)*.5);vel.applyQuaternion(camera.quaternion);shells.push({mesh:m,vel:vel,av:new THREE.Vector3(Math.random()*18,Math.random()*18,Math.random()*18),life:SHELL_LIFETIME});}
   function updShells(dt){for(var i=shells.length-1;i>=0;i--){var s=shells[i];s.life-=dt;s.vel.y-=10*dt;if(s.mesh.position.y<=.04){s.vel.y=Math.abs(s.vel.y)*.22;s.vel.x*=.65;s.vel.z*=.65;}s.mesh.position.addScaledVector(s.vel,dt);s.mesh.rotation.x+=s.av.x*dt;s.mesh.rotation.y+=s.av.y*dt;if(s.life<=0){scene.remove(s.mesh);shells.splice(i,1);}}}
   function showHM(){document.getElementById('hitmark').style.opacity='1';setTimeout(function(){document.getElementById('hitmark').style.opacity='0';},120);}
 
@@ -1771,8 +1773,8 @@ function initGame(){
 
     var wantSprint=(keys['ShiftLeft']||keys['ShiftRight'])&&!ads&&_mv.lengthSq()>0;
     var sprint=wantSprint&&player.stamina>0;
-    if(sprint){player.stamina=Math.max(0,player.stamina-dt*40);}
-    else if(!wantSprint){player.stamina=Math.min(player.maxStamina,player.stamina+(player.stamina<20?8:20)*dt);}
+    if(sprint){player.stamina=Math.max(0,player.stamina-dt*STAMINA_DRAIN);}
+    else if(!wantSprint){player.stamina=Math.min(player.maxStamina,player.stamina+(player.stamina<STAMINA_REGEN_THRESH?STAMINA_REGEN_LOW:STAMINA_REGEN)*dt);}
     var spd=ads?player.speed*.45:(sprint?player.sprintSpd:player.speed);
     /* Update stamina bar */
     var stBar=document.getElementById('stam-fill');if(stBar)stBar.style.width=(player.stamina/player.maxStamina*100)+'%';
